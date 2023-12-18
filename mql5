@@ -1,0 +1,91 @@
+
+//+------------------------------------------------------------------+
+//|                                                     Tabajara Rules II The Best for MT5 |
+//|                     Copyright 2022, Forex Robot Easy Team      |
+//|                                  https://www.forexroboteasy.com     |
+//+------------------------------------------------------------------+
+
+#property copyright 'Copyright 2022, Forex Robot Easy Team'
+#property link      'https://www.forexroboteasy.com'
+#property version   '1.00'
+#property description 'Tabajara Rules II The Best for MT5'
+
+//--- input parameters
+input int MA_Period=20; // period for moving average
+input ENUM_MA_METHOD MA_Method=MODE_SMA; // smoothing method for moving average
+input color Candle_Outline_Color=clrRed; // color for candle outlines
+input color Candle_Filling_Color=clrWhite; // color for candle fillings
+input color MA_Color=clrBlue; // color for moving average
+
+//--- indicator buffers
+double ExtMABuffer[];
+int ExtCandleBuffer[];
+
+//+------------------------------------------------------------------+
+//| Custom indicator initialization function                         |
+//+------------------------------------------------------------------+
+int OnInit()
+{
+   //--- indicator buffers mapping
+   SetIndexBuffer(0, ExtMABuffer, INDICATOR_DATA);
+   SetIndexBuffer(1, ExtCandleBuffer, INDICATOR_COLOR_INDEX);
+
+   //--- set up parameters
+   SetIndexStyle(0, DRAW_LINE);
+   SetIndexDrawBegin(0, MA_Period);
+   SetIndexBuffer(0, ExtMABuffer);
+   SetIndexLabel(0, 'Moving Average');
+
+   SetIndexStyle(1, DRAW_COLOR_CANDLES);
+   SetIndexBuffer(1, ExtCandleBuffer);
+   SetIndexLabel(1, 'Candles');
+
+   //--- initialize indicator buffers
+   ArrayInitialize(ExtMABuffer, 0);
+   ArrayInitialize(ExtCandleBuffer, 0);
+
+   return(INIT_SUCCEEDED);
+}
+
+//+------------------------------------------------------------------+
+//| Custom indicator iteration function                              |
+//+------------------------------------------------------------------+
+int OnCalculate(const int rates_total,
+                const int prev_calculated,
+                const datetime &time[],
+                const double &open[],
+                const double &high[],
+                const double &low[],
+                const double &close[],
+                const long &tick_volume[],
+                const long &volume[],
+                const int &spread[])
+{
+   //--- check for necessary amount of bars
+   if(rates_total<MA_Period)
+      return(0);
+
+   //--- calculate moving average
+   ArraySetAsSeries(open, true);
+   ArraySetAsSeries(high, true);
+   ArraySetAsSeries(low, true);
+   ArraySetAsSeries(close, true);
+
+   int limit=prev_calculated-1;
+   if(limit<MA_Period)
+      limit=MA_Period;
+
+   for(int i=limit; i>=0; i--)
+      ExtMABuffer[i]=iMA(NULL, 0, MA_Period, 0, MA_Method, PRICE_CLOSE, i);
+
+   //--- color code candles
+   for(int i=limit; i>=0; i--)
+   {
+      if(close[i]>ExtMABuffer[i])
+         ExtCandleBuffer[i]=Candle_Outline_Color | Candle_Filling_Color;
+      else
+         ExtCandleBuffer[i]=Candle_Outline_Color & Candle_Filling_Color;
+   }
+
+   return(rates_total);
+}
